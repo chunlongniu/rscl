@@ -8,6 +8,7 @@ pub struct SourceFile {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::enum_variant_names)]
 pub enum Block {
     FunctionBlock(FunctionBlockDecl),
     Function(FunctionDecl),
@@ -75,7 +76,10 @@ pub struct VarDecl {
 #[derive(Debug, Clone)]
 pub enum TypeSpec {
     Elementary(ElementaryType),
-    Array { ranges: Vec<(Expression, Expression)>, element_type: Box<TypeSpec> },
+    Array {
+        ranges: Vec<(Expression, Expression)>,
+        element_type: Box<TypeSpec>,
+    },
     Struct(Vec<VarDecl>),
     UserDefined(String),
     StringType(Option<Expression>), // STRING[length]
@@ -100,14 +104,25 @@ pub enum ElementaryType {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    Assignment { target: Expression, value: Expression, span: Span },
+    Assignment {
+        target: Expression,
+        value: Expression,
+        span: Span,
+    },
     If(IfStatement),
     For(ForStatement),
     While(WhileStatement),
     Repeat(RepeatStatement),
     Case(CaseStatement),
-    Return { value: Option<Expression>, span: Span },
-    Call { target: Expression, args: Vec<CallArg>, span: Span },
+    Return {
+        value: Option<Expression>,
+        span: Span,
+    },
+    Call {
+        target: Expression,
+        args: Vec<CallArg>,
+        span: Span,
+    },
     Empty,
 }
 
@@ -169,11 +184,32 @@ pub enum Expression {
     Literal(Literal, Span),
     Ident(String, Span),
     PlcAddress(String, Span),
-    Binary { op: BinOp, left: Box<Expression>, right: Box<Expression>, span: Span },
-    Unary { op: UnaryOp, operand: Box<Expression>, span: Span },
-    ArrayAccess { array: Box<Expression>, indices: Vec<Expression>, span: Span },
-    FieldAccess { object: Box<Expression>, field: String, span: Span },
-    FunctionCall { name: Box<Expression>, args: Vec<CallArg>, span: Span },
+    Binary {
+        op: BinOp,
+        left: Box<Expression>,
+        right: Box<Expression>,
+        span: Span,
+    },
+    Unary {
+        op: UnaryOp,
+        operand: Box<Expression>,
+        span: Span,
+    },
+    ArrayAccess {
+        array: Box<Expression>,
+        indices: Vec<Expression>,
+        span: Span,
+    },
+    FieldAccess {
+        object: Box<Expression>,
+        field: String,
+        span: Span,
+    },
+    FunctionCall {
+        name: Box<Expression>,
+        args: Vec<CallArg>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -186,9 +222,22 @@ pub enum Literal {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BinOp {
-    Add, Sub, Mul, Div, Mod, IntDiv, Power,
-    And, Or, Xor,
-    Eq, Neq, Lt, Gt, Le, Ge,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    IntDiv,
+    Power,
+    And,
+    Or,
+    Xor,
+    Eq,
+    Neq,
+    Lt,
+    Gt,
+    Le,
+    Ge,
 }
 
 #[derive(Debug, Clone, PartialEq)]

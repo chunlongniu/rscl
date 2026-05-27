@@ -1,0 +1,60 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - "v*" # 仅在推送 v 开头的 tag 时触发
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须赋予写入权限以创建 Release 和上传 Assets
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # 使用缓存加速编译，提升“快读层”的响应效率
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      # 质量审计：强制检查，不符合 Rust 惯用法的代码直接拒绝编译
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+      # 编译 Release 版本
+      - name: Build Release Binary
+        run: cargo build --release --verbose
+
+      # 严谨校验：确保是 Tag 触发
+      - name: Validate Ref Type
+        run: |
+          if [[ "${{ github.ref_type }}" != "tag" ]]; then
+            echo "Error: Only tags are allowed to trigger this release!"
+            exit 1
+          fi
+
+      # 准备资产：重命名 Binary 并生成 SHA-256 哈希指纹
+      - name: Prepare Assets
+        run: |
+          # 1. 重命名 Binary
+          mv target/release/rscl target/release/rscl-${{ github.ref_name }}-linux-x64
+
+          # 2. 生成 SHA-256 校验码
+          cd target/release/
+          sha256sum rscl-${{ github.ref_name }}-linux-x64 > rscl-${{ github.ref_name }}-linux-x64.sha256
+
+      # 自动上传 Binary 和其对应的 Hash 到 Release Assets
+      - name: Upload to Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Version ${{ github.ref_name }}
+          files: |
+            target/release/rscl-${{ github.ref_name }}-linux-x64
+            target/release/rscl-${{ github.ref_name }}-linux-x64.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

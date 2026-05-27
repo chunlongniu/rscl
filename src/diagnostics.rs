@@ -11,7 +11,11 @@ pub async fn publish_diagnostics(client: &Client, uri: &Uri, text: &str) {
         .iter()
         .filter(|t| matches!(t.kind, crate::lexer::TokenKind::Error(_)))
         .map(|t| {
-            let ch = if let crate::lexer::TokenKind::Error(c) = t.kind { c } else { '?' };
+            let ch = if let crate::lexer::TokenKind::Error(c) = t.kind {
+                c
+            } else {
+                '?'
+            };
             crate::parser::ParseError {
                 message: format!("unexpected character '{}'", ch),
                 span: t.span.clone(),
@@ -21,7 +25,7 @@ pub async fn publish_diagnostics(client: &Client, uri: &Uri, text: &str) {
 
     let (_, parse_errors) = Parser::new(tokens).parse();
 
-    let all_errors = lex_errors.into_iter().chain(parse_errors.into_iter());
+    let all_errors = lex_errors.into_iter().chain(parse_errors);
 
     let line_index = LineIndex::new(text);
     let diagnostics: Vec<Diagnostic> = all_errors
@@ -38,7 +42,9 @@ pub async fn publish_diagnostics(client: &Client, uri: &Uri, text: &str) {
         })
         .collect();
 
-    client.publish_diagnostics(uri.clone(), diagnostics, None).await;
+    client
+        .publish_diagnostics(uri.clone(), diagnostics, None)
+        .await;
 }
 
 struct LineIndex {
@@ -57,7 +63,10 @@ impl LineIndex {
     }
 
     fn position(&self, offset: usize) -> Position {
-        let line = self.line_starts.partition_point(|&s| s <= offset).saturating_sub(1);
+        let line = self
+            .line_starts
+            .partition_point(|&s| s <= offset)
+            .saturating_sub(1);
         let col = offset - self.line_starts[line];
         Position::new(line as u32, col as u32)
     }

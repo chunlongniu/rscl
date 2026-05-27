@@ -88,28 +88,28 @@ pub enum TokenKind {
     // PLC address (e.g. IW0, MW10, Q0.1, DB1.DBW0)
     PlcAddress(String),
     // Operators and punctuation
-    Assign,       // :=
-    Colon,        // :
-    Semicolon,    // ;
-    Comma,        // ,
-    Dot,          // .
-    DotDot,       // ..
-    LParen,       // (
-    RParen,       // )
-    LBracket,     // [
-    RBracket,     // ]
-    Plus,         // +
-    Minus,        // -
-    Star,         // *
-    Slash,        // /
-    Power,        // **
-    Eq,           // =
-    Neq,          // <>
-    Lt,           // <
-    Gt,           // >
-    Le,           // <=
-    Ge,           // >=
-    Hash,         // #
+    Assign,    // :=
+    Colon,     // :
+    Semicolon, // ;
+    Comma,     // ,
+    Dot,       // .
+    DotDot,    // ..
+    LParen,    // (
+    RParen,    // )
+    LBracket,  // [
+    RBracket,  // ]
+    Plus,      // +
+    Minus,     // -
+    Star,      // *
+    Slash,     // /
+    Power,     // **
+    Eq,        // =
+    Neq,       // <>
+    Lt,        // <
+    Gt,        // >
+    Le,        // <=
+    Ge,        // >=
+    Hash,      // #
     // Special
     Error(char),
     Eof,
@@ -145,7 +145,10 @@ impl<'a> Lexer<'a> {
         self.skip_whitespace_and_comments();
         let start = self.pos;
         if self.pos >= self.input.len() {
-            return Token { kind: TokenKind::Eof, span: Span { start, end: start } };
+            return Token {
+                kind: TokenKind::Eof,
+                span: Span { start, end: start },
+            };
         }
         let ch = self.input[self.pos] as char;
 
@@ -226,27 +229,41 @@ impl<'a> Lexer<'a> {
             '#' => TokenKind::Hash,
             _ => TokenKind::Error(ch),
         };
-        Token { kind, span: Span { start, end: self.pos } }
+        Token {
+            kind,
+            span: Span {
+                start,
+                end: self.pos,
+            },
+        }
     }
 
     fn skip_whitespace_and_comments(&mut self) {
         loop {
             // Skip whitespace
-            while self.pos < self.input.len() && (self.input[self.pos] as char).is_ascii_whitespace() {
+            while self.pos < self.input.len()
+                && (self.input[self.pos] as char).is_ascii_whitespace()
+            {
                 self.pos += 1;
             }
             if self.pos >= self.input.len() {
                 return;
             }
             // Line comment //
-            if self.pos + 1 < self.input.len() && self.input[self.pos] == b'/' && self.input[self.pos + 1] == b'/' {
+            if self.pos + 1 < self.input.len()
+                && self.input[self.pos] == b'/'
+                && self.input[self.pos + 1] == b'/'
+            {
                 while self.pos < self.input.len() && self.input[self.pos] != b'\n' {
                     self.pos += 1;
                 }
                 continue;
             }
             // Block comment (* ... *)
-            if self.pos + 1 < self.input.len() && self.input[self.pos] == b'(' && self.input[self.pos + 1] == b'*' {
+            if self.pos + 1 < self.input.len()
+                && self.input[self.pos] == b'('
+                && self.input[self.pos + 1] == b'*'
+            {
                 self.pos += 2;
                 while self.pos + 1 < self.input.len() {
                     if self.input[self.pos] == b'*' && self.input[self.pos + 1] == b')' {
@@ -290,7 +307,13 @@ impl<'a> Lexer<'a> {
         if self.pos < self.input.len() {
             self.pos += 1; // skip closing '
         }
-        Token { kind: TokenKind::StringLiteral(s), span: Span { start, end: self.pos } }
+        Token {
+            kind: TokenKind::StringLiteral(s),
+            span: Span {
+                start,
+                end: self.pos,
+            },
+        }
     }
 
     fn lex_number(&mut self, start: usize) -> Token {
@@ -301,39 +324,69 @@ impl<'a> Lexer<'a> {
         // Check for real number
         if self.pos < self.input.len() && self.input[self.pos] == b'.' {
             // Peek ahead - if next is also a digit, it's a real; if it's '.', it's a range
-            if self.pos + 1 < self.input.len() && (self.input[self.pos + 1] as char).is_ascii_digit() {
+            if self.pos + 1 < self.input.len()
+                && (self.input[self.pos + 1] as char).is_ascii_digit()
+            {
                 self.pos += 1; // skip '.'
-                while self.pos < self.input.len() && (self.input[self.pos] as char).is_ascii_digit() {
+                while self.pos < self.input.len() && (self.input[self.pos] as char).is_ascii_digit()
+                {
                     self.pos += 1;
                 }
                 // Exponent
-                if self.pos < self.input.len() && (self.input[self.pos] == b'e' || self.input[self.pos] == b'E') {
+                if self.pos < self.input.len()
+                    && (self.input[self.pos] == b'e' || self.input[self.pos] == b'E')
+                {
                     self.pos += 1;
-                    if self.pos < self.input.len() && (self.input[self.pos] == b'+' || self.input[self.pos] == b'-') {
+                    if self.pos < self.input.len()
+                        && (self.input[self.pos] == b'+' || self.input[self.pos] == b'-')
+                    {
                         self.pos += 1;
                     }
-                    while self.pos < self.input.len() && (self.input[self.pos] as char).is_ascii_digit() {
+                    while self.pos < self.input.len()
+                        && (self.input[self.pos] as char).is_ascii_digit()
+                    {
                         self.pos += 1;
                     }
                 }
                 let text = std::str::from_utf8(&self.input[start..self.pos]).unwrap_or("0");
                 let val = text.parse::<f64>().unwrap_or(0.0);
-                return Token { kind: TokenKind::RealLiteral(val), span: Span { start, end: self.pos } };
+                return Token {
+                    kind: TokenKind::RealLiteral(val),
+                    span: Span {
+                        start,
+                        end: self.pos,
+                    },
+                };
             }
         }
         // Check for hex/octal/binary prefix pattern like 16#FF
         if self.pos < self.input.len() && self.input[self.pos] == b'#' {
             self.pos += 1;
-            while self.pos < self.input.len() && (self.input[self.pos] as char).is_ascii_alphanumeric() || (self.pos < self.input.len() && self.input[self.pos] == b'_') {
+            while self.pos < self.input.len()
+                && (self.input[self.pos] as char).is_ascii_alphanumeric()
+                || (self.pos < self.input.len() && self.input[self.pos] == b'_')
+            {
                 self.pos += 1;
             }
             let text = std::str::from_utf8(&self.input[start..self.pos]).unwrap_or("0");
             let val = parse_based_integer(text);
-            return Token { kind: TokenKind::IntLiteral(val), span: Span { start, end: self.pos } };
+            return Token {
+                kind: TokenKind::IntLiteral(val),
+                span: Span {
+                    start,
+                    end: self.pos,
+                },
+            };
         }
         let text = std::str::from_utf8(&self.input[start..self.pos]).unwrap_or("0");
         let val = text.parse::<i64>().unwrap_or(0);
-        Token { kind: TokenKind::IntLiteral(val), span: Span { start, end: self.pos } }
+        Token {
+            kind: TokenKind::IntLiteral(val),
+            span: Span {
+                start,
+                end: self.pos,
+            },
+        }
     }
 
     fn lex_ident_or_keyword(&mut self, start: usize) -> Token {
@@ -341,8 +394,7 @@ impl<'a> Lexer<'a> {
         if has_hash {
             self.pos += 1;
         }
-        while self.pos < self.input.len()
-            && (self.input[self.pos] as char).is_ascii_alphanumeric()
+        while self.pos < self.input.len() && (self.input[self.pos] as char).is_ascii_alphanumeric()
             || (self.pos < self.input.len() && self.input[self.pos] == b'_')
         {
             self.pos += 1;
@@ -353,7 +405,13 @@ impl<'a> Lexer<'a> {
         // Check for PLC address pattern: memory prefix + optional size + digits
         if !has_hash {
             if let Some(kind) = try_plc_address(&upper, self.input, &mut self.pos, start) {
-                return Token { kind, span: Span { start, end: self.pos } };
+                return Token {
+                    kind,
+                    span: Span {
+                        start,
+                        end: self.pos,
+                    },
+                };
             }
         }
 
@@ -422,31 +480,50 @@ impl<'a> Lexer<'a> {
             "FALSE" => TokenKind::False,
             _ => TokenKind::Ident(text.to_string()),
         };
-        Token { kind, span: Span { start, end: self.pos } }
+        Token {
+            kind,
+            span: Span {
+                start,
+                end: self.pos,
+            },
+        }
     }
 }
 
 /// Try to parse a PLC memory address like IW0, MW10, Q0.1, DB1.DBW0
 fn try_plc_address(upper: &str, input: &[u8], pos: &mut usize, _start: usize) -> Option<TokenKind> {
-    let prefixes = ["PIW", "PQW", "PID", "PQD", "IB", "IW", "ID", "QB", "QW", "QD", "MB", "MW", "MD"];
+    let prefixes = [
+        "PIW", "PQW", "PID", "PQD", "IB", "IW", "ID", "QB", "QW", "QD", "MB", "MW", "MD",
+    ];
     let single = ["I", "Q", "M"];
 
     // Find matching prefix
-    let prefix_len = prefixes.iter()
+    let prefix_len = prefixes
+        .iter()
         .find(|p| upper.starts_with(*p))
         .map(|p| p.len())
-        .or_else(|| single.iter().find(|p| upper.starts_with(*p)).map(|p| p.len()));
+        .or_else(|| {
+            single
+                .iter()
+                .find(|p| upper.starts_with(*p))
+                .map(|p| p.len())
+        });
 
     let prefix_len = match prefix_len {
         Some(l) => l,
         None => {
             // Check DB pattern: DB followed by digits
-            if upper.starts_with("DB") && upper.len() > 2 && upper[2..].chars().all(|c| c.is_ascii_digit()) {
+            if upper.starts_with("DB")
+                && upper.len() > 2
+                && upper[2..].chars().all(|c| c.is_ascii_digit())
+            {
                 let mut full = upper.to_string();
                 if *pos < input.len() && input[*pos] == b'.' {
                     *pos += 1;
                     let dot_start = *pos;
-                    while *pos < input.len() && ((input[*pos] as char).is_ascii_alphanumeric() || input[*pos] == b'_') {
+                    while *pos < input.len()
+                        && ((input[*pos] as char).is_ascii_alphanumeric() || input[*pos] == b'_')
+                    {
                         *pos += 1;
                     }
                     let after_dot = std::str::from_utf8(&input[dot_start..*pos]).unwrap_or("");
@@ -463,14 +540,16 @@ fn try_plc_address(upper: &str, input: &[u8], pos: &mut usize, _start: usize) ->
     if upper.len() > prefix_len && upper[prefix_len..].chars().all(|c| c.is_ascii_digit()) {
         let mut addr = upper.to_string();
         // Check for .bit notation (e.g., Q0.1)
-        if *pos < input.len() && input[*pos] == b'.' {
-            if *pos + 1 < input.len() && (input[*pos + 1] as char).is_ascii_digit() {
+        if *pos < input.len()
+            && input[*pos] == b'.'
+            && *pos + 1 < input.len()
+            && (input[*pos + 1] as char).is_ascii_digit()
+        {
+            *pos += 1;
+            addr.push('.');
+            while *pos < input.len() && (input[*pos] as char).is_ascii_digit() {
+                addr.push(input[*pos] as char);
                 *pos += 1;
-                addr.push('.');
-                while *pos < input.len() && (input[*pos] as char).is_ascii_digit() {
-                    addr.push(input[*pos] as char);
-                    *pos += 1;
-                }
             }
         }
         return Some(TokenKind::PlcAddress(addr));
@@ -544,7 +623,10 @@ mod tests {
     #[test]
     fn test_string() {
         let tokens = Lexer::new("'hello world'").tokenize();
-        assert_eq!(tokens[0].kind, TokenKind::StringLiteral("hello world".into()));
+        assert_eq!(
+            tokens[0].kind,
+            TokenKind::StringLiteral("hello world".into())
+        );
     }
 
     #[test]

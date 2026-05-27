@@ -7,7 +7,9 @@ pub struct DocumentStore {
 
 impl DocumentStore {
     pub fn new() -> Self {
-        Self { docs: HashMap::new() }
+        Self {
+            docs: HashMap::new(),
+        }
     }
 
     pub fn open(&mut self, uri: Uri, text: String) {

@@ -6,23 +6,66 @@ pub fn get_completions(text: &str, pos: Position) -> Vec<CompletionItem> {
     let context = detect_context(text, pos);
     let keywords = match context {
         Context::TopLevel => &[
-            "FUNCTION_BLOCK", "FUNCTION", "DATA_BLOCK", "ORGANIZATION_BLOCK",
+            "FUNCTION_BLOCK",
+            "FUNCTION",
+            "DATA_BLOCK",
+            "ORGANIZATION_BLOCK",
         ][..],
         Context::InsideBlock => &[
-            "VAR", "VAR_INPUT", "VAR_OUTPUT", "VAR_IN_OUT", "VAR_TEMP",
-            "CONST", "BEGIN",
+            "VAR",
+            "VAR_INPUT",
+            "VAR_OUTPUT",
+            "VAR_IN_OUT",
+            "VAR_TEMP",
+            "CONST",
+            "BEGIN",
         ][..],
         Context::VarSection => &[
-            "BOOL", "BYTE", "WORD", "DWORD", "INT", "DINT", "REAL",
-            "CHAR", "STRING", "TIME", "DATE", "TIME_OF_DAY", "DATE_AND_TIME",
-            "S5TIME", "ARRAY", "STRUCT",
+            "BOOL",
+            "BYTE",
+            "WORD",
+            "DWORD",
+            "INT",
+            "DINT",
+            "REAL",
+            "CHAR",
+            "STRING",
+            "TIME",
+            "DATE",
+            "TIME_OF_DAY",
+            "DATE_AND_TIME",
+            "S5TIME",
+            "ARRAY",
+            "STRUCT",
         ][..],
         Context::Body => &[
-            "IF", "THEN", "ELSIF", "ELSE", "END_IF",
-            "FOR", "TO", "BY", "DO", "END_FOR",
-            "WHILE", "END_WHILE", "REPEAT", "UNTIL", "END_REPEAT",
-            "CASE", "OF", "END_CASE", "RETURN",
-            "TRUE", "FALSE", "AND", "OR", "XOR", "NOT", "MOD", "DIV",
+            "IF",
+            "THEN",
+            "ELSIF",
+            "ELSE",
+            "END_IF",
+            "FOR",
+            "TO",
+            "BY",
+            "DO",
+            "END_FOR",
+            "WHILE",
+            "END_WHILE",
+            "REPEAT",
+            "UNTIL",
+            "END_REPEAT",
+            "CASE",
+            "OF",
+            "END_CASE",
+            "RETURN",
+            "TRUE",
+            "FALSE",
+            "AND",
+            "OR",
+            "XOR",
+            "NOT",
+            "MOD",
+            "DIV",
         ][..],
     };
 
@@ -56,20 +99,25 @@ fn detect_context(text: &str, pos: Position) -> Context {
 
     for tok in &tokens {
         match &tok.kind {
-            TokenKind::FunctionBlock | TokenKind::Function
-            | TokenKind::DataBlock | TokenKind::OrganizationBlock => {
+            TokenKind::FunctionBlock
+            | TokenKind::Function
+            | TokenKind::DataBlock
+            | TokenKind::OrganizationBlock => {
                 in_block = true;
                 in_var = false;
                 in_body = false;
             }
-            TokenKind::EndFunctionBlock | TokenKind::EndFunction
-            | TokenKind::EndDataBlock => {
+            TokenKind::EndFunctionBlock | TokenKind::EndFunction | TokenKind::EndDataBlock => {
                 in_block = false;
                 in_var = false;
                 in_body = false;
             }
-            TokenKind::Var | TokenKind::VarInput | TokenKind::VarOutput
-            | TokenKind::VarInOut | TokenKind::VarTemp | TokenKind::Const => {
+            TokenKind::Var
+            | TokenKind::VarInput
+            | TokenKind::VarOutput
+            | TokenKind::VarInOut
+            | TokenKind::VarTemp
+            | TokenKind::Const => {
                 in_var = true;
                 in_body = false;
             }

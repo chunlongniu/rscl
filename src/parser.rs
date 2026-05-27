@@ -15,7 +15,11 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, pos: 0, errors: vec![] }
+        Self {
+            tokens,
+            pos: 0,
+            errors: vec![],
+        }
     }
 
     pub fn parse(mut self) -> (SourceFile, Vec<ParseError>) {
@@ -43,7 +47,9 @@ impl Parser {
                     }
                 }
                 _ => {
-                    self.error("expected FUNCTION_BLOCK, FUNCTION, DATA_BLOCK, or ORGANIZATION_BLOCK");
+                    self.error(
+                        "expected FUNCTION_BLOCK, FUNCTION, DATA_BLOCK, or ORGANIZATION_BLOCK",
+                    );
                     self.advance();
                 }
             }
@@ -54,11 +60,17 @@ impl Parser {
     // --- Helpers ---
 
     fn peek_kind(&self) -> &TokenKind {
-        self.tokens.get(self.pos).map(|t| &t.kind).unwrap_or(&TokenKind::Eof)
+        self.tokens
+            .get(self.pos)
+            .map(|t| &t.kind)
+            .unwrap_or(&TokenKind::Eof)
     }
 
     fn peek_span(&self) -> Span {
-        self.tokens.get(self.pos).map(|t| t.span.clone()).unwrap_or(Span { start: 0, end: 0 })
+        self.tokens
+            .get(self.pos)
+            .map(|t| t.span.clone())
+            .unwrap_or(Span { start: 0, end: 0 })
     }
 
     fn at_eof(&self) -> bool {
@@ -104,12 +116,18 @@ impl Parser {
 
     fn error(&mut self, msg: &str) {
         let span = self.peek_span();
-        self.errors.push(ParseError { message: msg.to_string(), span });
+        self.errors.push(ParseError {
+            message: msg.to_string(),
+            span,
+        });
     }
 
     fn skip_until(&mut self, sync: &[TokenKind]) {
         while !self.at_eof() {
-            if sync.iter().any(|k| std::mem::discriminant(self.peek_kind()) == std::mem::discriminant(k)) {
+            if sync
+                .iter()
+                .any(|k| std::mem::discriminant(self.peek_kind()) == std::mem::discriminant(k))
+            {
                 return;
             }
             self.advance();
@@ -123,14 +141,16 @@ impl Parser {
         self.advance(); // consume FUNCTION_BLOCK
         let name = self.expect_ident();
         let var_sections = self.parse_var_sections();
-        let body = if self.eat(&TokenKind::Begin) {
-            self.parse_statement_list()
-        } else {
-            self.parse_statement_list()
-        };
+        self.eat(&TokenKind::Begin);
+        let body = self.parse_statement_list();
         let end = self.peek_span().end;
         self.eat(&TokenKind::EndFunctionBlock);
-        Some(FunctionBlockDecl { name, span: Span { start, end }, var_sections, body })
+        Some(FunctionBlockDecl {
+            name,
+            span: Span { start, end },
+            var_sections,
+            body,
+        })
     }
 
     fn parse_function(&mut self) -> Option<FunctionDecl> {
@@ -143,14 +163,17 @@ impl Parser {
             None
         };
         let var_sections = self.parse_var_sections();
-        let body = if self.eat(&TokenKind::Begin) {
-            self.parse_statement_list()
-        } else {
-            self.parse_statement_list()
-        };
+        self.eat(&TokenKind::Begin);
+        let body = self.parse_statement_list();
         let end = self.peek_span().end;
         self.eat(&TokenKind::EndFunction);
-        Some(FunctionDecl { name, return_type, span: Span { start, end }, var_sections, body })
+        Some(FunctionDecl {
+            name,
+            return_type,
+            span: Span { start, end },
+            var_sections,
+            body,
+        })
     }
 
     fn parse_data_block(&mut self) -> Option<DataBlockDecl> {
@@ -163,7 +186,11 @@ impl Parser {
         // Skip DB body assignments for now
         self.skip_until(&[TokenKind::EndDataBlock]);
         self.eat(&TokenKind::EndDataBlock);
-        Some(DataBlockDecl { name, span: Span { start, end }, var_sections })
+        Some(DataBlockDecl {
+            name,
+            span: Span { start, end },
+            var_sections,
+        })
     }
 
     fn parse_org_block(&mut self) -> Option<OrgBlockDecl> {
@@ -171,14 +198,16 @@ impl Parser {
         self.advance(); // consume ORGANIZATION_BLOCK
         let name = self.expect_ident();
         let var_sections = self.parse_var_sections();
-        let body = if self.eat(&TokenKind::Begin) {
-            self.parse_statement_list()
-        } else {
-            self.parse_statement_list()
-        };
+        self.eat(&TokenKind::Begin);
+        let body = self.parse_statement_list();
         let end = self.peek_span().end;
         // No standard END keyword for OB in TIA Portal, but handle if present
-        Some(OrgBlockDecl { name, span: Span { start, end }, var_sections, body })
+        Some(OrgBlockDecl {
+            name,
+            span: Span { start, end },
+            var_sections,
+            body,
+        })
     }
 }
 
@@ -199,11 +228,18 @@ impl Parser {
             let start = self.peek_span().start;
             self.advance();
             let mut decls = Vec::new();
-            while !matches!(self.peek_kind(), TokenKind::EndVar | TokenKind::EndConst | TokenKind::Eof) {
+            while !matches!(
+                self.peek_kind(),
+                TokenKind::EndVar | TokenKind::EndConst | TokenKind::Eof
+            ) {
                 if let Some(d) = self.parse_var_decl() {
                     decls.push(d);
                 } else {
-                    self.skip_until(&[TokenKind::Semicolon, TokenKind::EndVar, TokenKind::EndConst]);
+                    self.skip_until(&[
+                        TokenKind::Semicolon,
+                        TokenKind::EndVar,
+                        TokenKind::EndConst,
+                    ]);
                     self.eat(&TokenKind::Semicolon);
                 }
             }
@@ -213,7 +249,11 @@ impl Parser {
             } else {
                 self.eat(&TokenKind::EndVar);
             }
-            sections.push(VarSection { kind, decls, span: Span { start, end } });
+            sections.push(VarSection {
+                kind,
+                decls,
+                span: Span { start, end },
+            });
         }
         sections
     }
@@ -241,24 +281,68 @@ impl Parser {
         };
         let end = self.peek_span().end;
         self.expect(&TokenKind::Semicolon);
-        Some(VarDecl { names, type_spec, init_value, span: Span { start, end } })
+        Some(VarDecl {
+            names,
+            type_spec,
+            init_value,
+            span: Span { start, end },
+        })
     }
 
     fn parse_type_spec(&mut self) -> TypeSpec {
         match self.peek_kind().clone() {
-            TokenKind::Bool => { self.advance(); TypeSpec::Elementary(ElementaryType::Bool) }
-            TokenKind::Byte => { self.advance(); TypeSpec::Elementary(ElementaryType::Byte) }
-            TokenKind::Word => { self.advance(); TypeSpec::Elementary(ElementaryType::Word) }
-            TokenKind::DWord => { self.advance(); TypeSpec::Elementary(ElementaryType::DWord) }
-            TokenKind::Int => { self.advance(); TypeSpec::Elementary(ElementaryType::Int) }
-            TokenKind::DInt => { self.advance(); TypeSpec::Elementary(ElementaryType::DInt) }
-            TokenKind::Real => { self.advance(); TypeSpec::Elementary(ElementaryType::Real) }
-            TokenKind::Char => { self.advance(); TypeSpec::Elementary(ElementaryType::Char) }
-            TokenKind::Time => { self.advance(); TypeSpec::Elementary(ElementaryType::Time) }
-            TokenKind::Date => { self.advance(); TypeSpec::Elementary(ElementaryType::Date) }
-            TokenKind::Tod => { self.advance(); TypeSpec::Elementary(ElementaryType::Tod) }
-            TokenKind::DateAndTime => { self.advance(); TypeSpec::Elementary(ElementaryType::DateAndTime) }
-            TokenKind::S5Time => { self.advance(); TypeSpec::Elementary(ElementaryType::S5Time) }
+            TokenKind::Bool => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Bool)
+            }
+            TokenKind::Byte => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Byte)
+            }
+            TokenKind::Word => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Word)
+            }
+            TokenKind::DWord => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::DWord)
+            }
+            TokenKind::Int => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Int)
+            }
+            TokenKind::DInt => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::DInt)
+            }
+            TokenKind::Real => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Real)
+            }
+            TokenKind::Char => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Char)
+            }
+            TokenKind::Time => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Time)
+            }
+            TokenKind::Date => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Date)
+            }
+            TokenKind::Tod => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::Tod)
+            }
+            TokenKind::DateAndTime => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::DateAndTime)
+            }
+            TokenKind::S5Time => {
+                self.advance();
+                TypeSpec::Elementary(ElementaryType::S5Time)
+            }
             TokenKind::StringKw => {
                 self.advance();
                 let len = if self.eat(&TokenKind::LBracket) {
@@ -279,12 +363,17 @@ impl Parser {
                     self.expect(&TokenKind::DotDot);
                     let hi = self.parse_expression();
                     ranges.push((lo, hi));
-                    if !self.eat(&TokenKind::Comma) { break; }
+                    if !self.eat(&TokenKind::Comma) {
+                        break;
+                    }
                 }
                 self.expect(&TokenKind::RBracket);
                 self.expect(&TokenKind::Of);
                 let elem = self.parse_type_spec();
-                TypeSpec::Array { ranges, element_type: Box::new(elem) }
+                TypeSpec::Array {
+                    ranges,
+                    element_type: Box::new(elem),
+                }
             }
             TokenKind::Struct => {
                 self.advance();
@@ -318,21 +407,35 @@ impl Parser {
         let mut stmts = Vec::new();
         loop {
             match self.peek_kind() {
-                TokenKind::EndFunctionBlock | TokenKind::EndFunction
-                | TokenKind::EndIf | TokenKind::Elsif | TokenKind::Else
-                | TokenKind::EndFor | TokenKind::EndWhile
-                | TokenKind::EndRepeat | TokenKind::Until
-                | TokenKind::EndCase | TokenKind::Eof => break,
-                TokenKind::Semicolon => { self.advance(); continue; }
+                TokenKind::EndFunctionBlock
+                | TokenKind::EndFunction
+                | TokenKind::EndIf
+                | TokenKind::Elsif
+                | TokenKind::Else
+                | TokenKind::EndFor
+                | TokenKind::EndWhile
+                | TokenKind::EndRepeat
+                | TokenKind::Until
+                | TokenKind::EndCase
+                | TokenKind::Eof => break,
+                TokenKind::Semicolon => {
+                    self.advance();
+                    continue;
+                }
                 _ => {}
             }
             match self.parse_statement() {
                 Some(s) => stmts.push(s),
                 None => {
                     self.skip_until(&[
-                        TokenKind::Semicolon, TokenKind::EndIf, TokenKind::EndFor,
-                        TokenKind::EndWhile, TokenKind::EndRepeat, TokenKind::EndCase,
-                        TokenKind::EndFunctionBlock, TokenKind::EndFunction,
+                        TokenKind::Semicolon,
+                        TokenKind::EndIf,
+                        TokenKind::EndFor,
+                        TokenKind::EndWhile,
+                        TokenKind::EndRepeat,
+                        TokenKind::EndCase,
+                        TokenKind::EndFunctionBlock,
+                        TokenKind::EndFunction,
                     ]);
                     self.eat(&TokenKind::Semicolon);
                 }
@@ -358,7 +461,10 @@ impl Parser {
                 };
                 let end = self.peek_span().end;
                 self.eat(&TokenKind::Semicolon);
-                Some(Statement::Return { value, span: Span { start, end } })
+                Some(Statement::Return {
+                    value,
+                    span: Span { start, end },
+                })
             }
             TokenKind::Ident(_) | TokenKind::PlcAddress(_) | TokenKind::Hash => {
                 let expr = self.parse_expression();
@@ -366,18 +472,30 @@ impl Parser {
                     let value = self.parse_expression();
                     let end = self.peek_span().end;
                     self.eat(&TokenKind::Semicolon);
-                    Some(Statement::Assignment { target: expr, value, span: Span { start, end } })
+                    Some(Statement::Assignment {
+                        target: expr,
+                        value,
+                        span: Span { start, end },
+                    })
                 } else if self.eat(&TokenKind::LParen) {
                     // Function call with named params
                     let args = self.parse_call_args();
                     self.expect(&TokenKind::RParen);
                     let end = self.peek_span().end;
                     self.eat(&TokenKind::Semicolon);
-                    Some(Statement::Call { target: expr, args, span: Span { start, end } })
+                    Some(Statement::Call {
+                        target: expr,
+                        args,
+                        span: Span { start, end },
+                    })
                 } else {
                     let end = self.peek_span().end;
                     self.eat(&TokenKind::Semicolon);
-                    Some(Statement::Call { target: expr, args: vec![], span: Span { start, end } })
+                    Some(Statement::Call {
+                        target: expr,
+                        args: vec![],
+                        span: Span { start, end },
+                    })
                 }
             }
             _ => {
@@ -408,7 +526,13 @@ impl Parser {
         let end = self.peek_span().end;
         self.expect(&TokenKind::EndIf);
         self.eat(&TokenKind::Semicolon);
-        Statement::If(IfStatement { condition, then_body, elsif_clauses, else_body, span: Span { start, end } })
+        Statement::If(IfStatement {
+            condition,
+            then_body,
+            elsif_clauses,
+            else_body,
+            span: Span { start, end },
+        })
     }
 
     fn parse_for_statement(&mut self) -> Statement {
@@ -429,7 +553,14 @@ impl Parser {
         let end = self.peek_span().end;
         self.expect(&TokenKind::EndFor);
         self.eat(&TokenKind::Semicolon);
-        Statement::For(ForStatement { var, from, to, by, body, span: Span { start, end } })
+        Statement::For(ForStatement {
+            var,
+            from,
+            to,
+            by,
+            body,
+            span: Span { start, end },
+        })
     }
 
     fn parse_while_statement(&mut self) -> Statement {
@@ -441,7 +572,11 @@ impl Parser {
         let end = self.peek_span().end;
         self.expect(&TokenKind::EndWhile);
         self.eat(&TokenKind::Semicolon);
-        Statement::While(WhileStatement { condition, body, span: Span { start, end } })
+        Statement::While(WhileStatement {
+            condition,
+            body,
+            span: Span { start, end },
+        })
     }
 
     fn parse_repeat_statement(&mut self) -> Statement {
@@ -453,7 +588,11 @@ impl Parser {
         let end = self.peek_span().end;
         self.expect(&TokenKind::EndRepeat);
         self.eat(&TokenKind::Semicolon);
-        Statement::Repeat(RepeatStatement { body, condition, span: Span { start, end } })
+        Statement::Repeat(RepeatStatement {
+            body,
+            condition,
+            span: Span { start, end },
+        })
     }
 
     fn parse_case_statement(&mut self) -> Statement {
@@ -484,7 +623,12 @@ impl Parser {
         let end = self.peek_span().end;
         self.expect(&TokenKind::EndCase);
         self.eat(&TokenKind::Semicolon);
-        Statement::Case(CaseStatement { expr, branches, else_body, span: Span { start, end } })
+        Statement::Case(CaseStatement {
+            expr,
+            branches,
+            else_body,
+            span: Span { start, end },
+        })
     }
 
     fn parse_call_args(&mut self) -> Vec<CallArg> {
@@ -499,7 +643,10 @@ impl Parser {
                 self.advance();
                 if self.eat(&TokenKind::Assign) {
                     let value = self.parse_expression();
-                    CallArg { name: Some(name), value }
+                    CallArg {
+                        name: Some(name),
+                        value,
+                    }
                 } else {
                     self.pos = saved;
                     let value = self.parse_expression();
@@ -510,7 +657,9 @@ impl Parser {
                 CallArg { name: None, value }
             };
             args.push(arg);
-            if !self.eat(&TokenKind::Comma) { break; }
+            if !self.eat(&TokenKind::Comma) {
+                break;
+            }
         }
         args
     }
@@ -529,7 +678,12 @@ impl Parser {
             self.advance();
             let right = self.parse_xor_expr();
             let end = right.span().end;
-            left = Expression::Binary { op: BinOp::Or, left: Box::new(left), right: Box::new(right), span: Span { start, end } };
+            left = Expression::Binary {
+                op: BinOp::Or,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            };
         }
         left
     }
@@ -541,7 +695,12 @@ impl Parser {
             self.advance();
             let right = self.parse_and_expr();
             let end = right.span().end;
-            left = Expression::Binary { op: BinOp::Xor, left: Box::new(left), right: Box::new(right), span: Span { start, end } };
+            left = Expression::Binary {
+                op: BinOp::Xor,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            };
         }
         left
     }
@@ -553,7 +712,12 @@ impl Parser {
             self.advance();
             let right = self.parse_comparison();
             let end = right.span().end;
-            left = Expression::Binary { op: BinOp::And, left: Box::new(left), right: Box::new(right), span: Span { start, end } };
+            left = Expression::Binary {
+                op: BinOp::And,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            };
         }
         left
     }
@@ -574,7 +738,12 @@ impl Parser {
             self.advance();
             let right = self.parse_additive();
             let end = right.span().end;
-            left = Expression::Binary { op, left: Box::new(left), right: Box::new(right), span: Span { start, end } };
+            left = Expression::Binary {
+                op,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            };
         }
         left
     }
@@ -591,7 +760,12 @@ impl Parser {
             self.advance();
             let right = self.parse_multiplicative();
             let end = right.span().end;
-            left = Expression::Binary { op, left: Box::new(left), right: Box::new(right), span: Span { start, end } };
+            left = Expression::Binary {
+                op,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            };
         }
         left
     }
@@ -610,7 +784,12 @@ impl Parser {
             self.advance();
             let right = self.parse_power();
             let end = right.span().end;
-            left = Expression::Binary { op, left: Box::new(left), right: Box::new(right), span: Span { start, end } };
+            left = Expression::Binary {
+                op,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            };
         }
         left
     }
@@ -622,7 +801,12 @@ impl Parser {
             self.advance();
             let right = self.parse_unary();
             let end = right.span().end;
-            Expression::Binary { op: BinOp::Power, left: Box::new(left), right: Box::new(right), span: Span { start, end } }
+            Expression::Binary {
+                op: BinOp::Power,
+                left: Box::new(left),
+                right: Box::new(right),
+                span: Span { start, end },
+            }
         } else {
             left
         }
@@ -635,14 +819,22 @@ impl Parser {
                 self.advance();
                 let operand = self.parse_unary();
                 let end = operand.span().end;
-                Expression::Unary { op: UnaryOp::Neg, operand: Box::new(operand), span: Span { start, end } }
+                Expression::Unary {
+                    op: UnaryOp::Neg,
+                    operand: Box::new(operand),
+                    span: Span { start, end },
+                }
             }
             TokenKind::Not => {
                 let start = self.peek_span().start;
                 self.advance();
                 let operand = self.parse_unary();
                 let end = operand.span().end;
-                Expression::Unary { op: UnaryOp::Not, operand: Box::new(operand), span: Span { start, end } }
+                Expression::Unary {
+                    op: UnaryOp::Not,
+                    operand: Box::new(operand),
+                    span: Span { start, end },
+                }
             }
             _ => self.parse_postfix(),
         }
@@ -657,7 +849,11 @@ impl Parser {
                     self.advance();
                     let field = self.expect_ident();
                     let end = self.peek_span().start;
-                    expr = Expression::FieldAccess { object: Box::new(expr), field, span: Span { start, end } };
+                    expr = Expression::FieldAccess {
+                        object: Box::new(expr),
+                        field,
+                        span: Span { start, end },
+                    };
                 }
                 TokenKind::LBracket => {
                     let start = expr.span().start;
@@ -668,7 +864,11 @@ impl Parser {
                     }
                     let end = self.peek_span().end;
                     self.expect(&TokenKind::RBracket);
-                    expr = Expression::ArrayAccess { array: Box::new(expr), indices, span: Span { start, end } };
+                    expr = Expression::ArrayAccess {
+                        array: Box::new(expr),
+                        indices,
+                        span: Span { start, end },
+                    };
                 }
                 TokenKind::LParen => {
                     let start = expr.span().start;
@@ -676,7 +876,11 @@ impl Parser {
                     let args = self.parse_call_args();
                     let end = self.peek_span().end;
                     self.expect(&TokenKind::RParen);
-                    expr = Expression::FunctionCall { name: Box::new(expr), args, span: Span { start, end } };
+                    expr = Expression::FunctionCall {
+                        name: Box::new(expr),
+                        args,
+                        span: Span { start, end },
+                    };
                 }
                 _ => break,
             }
@@ -687,18 +891,45 @@ impl Parser {
     fn parse_primary(&mut self) -> Expression {
         let span = self.peek_span();
         match self.peek_kind().clone() {
-            TokenKind::IntLiteral(v) => { self.advance(); Expression::Literal(Literal::Int(v), span) }
-            TokenKind::RealLiteral(v) => { self.advance(); Expression::Literal(Literal::Real(v), span) }
-            TokenKind::StringLiteral(v) => { self.advance(); Expression::Literal(Literal::String(v), span) }
-            TokenKind::True => { self.advance(); Expression::Literal(Literal::Bool(true), span) }
-            TokenKind::False => { self.advance(); Expression::Literal(Literal::Bool(false), span) }
-            TokenKind::Ident(name) => { self.advance(); Expression::Ident(name, span) }
-            TokenKind::PlcAddress(addr) => { self.advance(); Expression::PlcAddress(addr, span) }
+            TokenKind::IntLiteral(v) => {
+                self.advance();
+                Expression::Literal(Literal::Int(v), span)
+            }
+            TokenKind::RealLiteral(v) => {
+                self.advance();
+                Expression::Literal(Literal::Real(v), span)
+            }
+            TokenKind::StringLiteral(v) => {
+                self.advance();
+                Expression::Literal(Literal::String(v), span)
+            }
+            TokenKind::True => {
+                self.advance();
+                Expression::Literal(Literal::Bool(true), span)
+            }
+            TokenKind::False => {
+                self.advance();
+                Expression::Literal(Literal::Bool(false), span)
+            }
+            TokenKind::Ident(name) => {
+                self.advance();
+                Expression::Ident(name, span)
+            }
+            TokenKind::PlcAddress(addr) => {
+                self.advance();
+                Expression::PlcAddress(addr, span)
+            }
             TokenKind::Hash => {
                 self.advance();
                 let name = self.expect_ident();
                 let end = self.peek_span().start;
-                Expression::Ident(format!("#{}", name), Span { start: span.start, end })
+                Expression::Ident(
+                    format!("#{}", name),
+                    Span {
+                        start: span.start,
+                        end,
+                    },
+                )
             }
             TokenKind::LParen => {
                 self.advance();
@@ -742,7 +973,9 @@ mod tests {
 
     #[test]
     fn test_parse_function_block() {
-        let (sf, errors) = parse("FUNCTION_BLOCK MyFB\nVAR\n  x : INT;\nEND_VAR\nBEGIN\n  x := 1;\nEND_FUNCTION_BLOCK");
+        let (sf, errors) = parse(
+            "FUNCTION_BLOCK MyFB\nVAR\n  x : INT;\nEND_VAR\nBEGIN\n  x := 1;\nEND_FUNCTION_BLOCK",
+        );
         assert!(errors.is_empty(), "errors: {:?}", errors);
         assert_eq!(sf.blocks.len(), 1);
     }
@@ -756,7 +989,8 @@ mod tests {
 
     #[test]
     fn test_error_recovery() {
-        let (sf, errors) = parse("FUNCTION_BLOCK T\nVAR\n  x : ;\nEND_VAR\nBEGIN\nEND_FUNCTION_BLOCK");
+        let (sf, errors) =
+            parse("FUNCTION_BLOCK T\nVAR\n  x : ;\nEND_VAR\nBEGIN\nEND_FUNCTION_BLOCK");
         assert!(!errors.is_empty());
         assert_eq!(sf.blocks.len(), 1);
     }
