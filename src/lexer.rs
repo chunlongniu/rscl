@@ -80,8 +80,13 @@ pub enum TokenKind {
     // Literals
     True,
     False,
+    // Keywords - Metadata
+    Title,
+    Version,
+    NonRetain,
     // Identifiers and literals
     Ident(String),
+    QuotedIdent(String),
     IntLiteral(i64),
     RealLiteral(f64),
     StringLiteral(String),
@@ -155,6 +160,11 @@ impl<'a> Lexer<'a> {
         // String literal
         if ch == '\'' {
             return self.lex_string(start);
+        }
+
+        // Quoted identifier "..."
+        if ch == '"' {
+            return self.lex_quoted_ident(start);
         }
 
         // Number
@@ -309,6 +319,25 @@ impl<'a> Lexer<'a> {
         }
         Token {
             kind: TokenKind::StringLiteral(s),
+            span: Span {
+                start,
+                end: self.pos,
+            },
+        }
+    }
+
+    fn lex_quoted_ident(&mut self, start: usize) -> Token {
+        self.pos += 1; // skip opening "
+        let mut s = String::new();
+        while self.pos < self.input.len() && self.input[self.pos] != b'"' {
+            s.push(self.input[self.pos] as char);
+            self.pos += 1;
+        }
+        if self.pos < self.input.len() {
+            self.pos += 1; // skip closing "
+        }
+        Token {
+            kind: TokenKind::QuotedIdent(s),
             span: Span {
                 start,
                 end: self.pos,
@@ -478,6 +507,9 @@ impl<'a> Lexer<'a> {
             "DIV" => TokenKind::Div,
             "TRUE" => TokenKind::True,
             "FALSE" => TokenKind::False,
+            "TITLE" => TokenKind::Title,
+            "VERSION" => TokenKind::Version,
+            "NON_RETAIN" => TokenKind::NonRetain,
             _ => TokenKind::Ident(text.to_string()),
         };
         Token {

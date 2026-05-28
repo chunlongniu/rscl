@@ -85,7 +85,9 @@ impl LanguageServer for Backend {
             Some(t) => t.clone(),
             None => return Ok(None),
         };
+        let all_sources: Vec<&str> = docs.all().iter().map(|s| s.as_str()).collect();
+        let items = get_completions(&text, pos, &all_sources);
         drop(docs);
-        Ok(Some(CompletionResponse::Array(get_completions(&text, pos))))
+        Ok(Some(CompletionResponse::Array(items)))
     }
 }

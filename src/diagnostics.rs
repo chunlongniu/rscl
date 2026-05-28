@@ -25,7 +25,7 @@ pub async fn publish_diagnostics(client: &Client, uri: &Uri, text: &str) {
 
     let (_, parse_errors) = Parser::new(tokens).parse();
 
-    let all_errors = lex_errors.into_iter().chain(parse_errors);
+    let all_errors = lex_errors.into_iter().chain(parse_errors.into_iter());
 
     let line_index = LineIndex::new(text);
     let diagnostics: Vec<Diagnostic> = all_errors

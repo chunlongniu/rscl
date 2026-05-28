@@ -105,12 +105,15 @@ impl Parser {
     }
 
     fn expect_ident(&mut self) -> String {
-        if let TokenKind::Ident(name) = self.peek_kind().clone() {
-            self.advance();
-            name
-        } else {
-            self.error("expected identifier");
-            String::from("<error>")
+        match self.peek_kind().clone() {
+            TokenKind::Ident(name) | TokenKind::QuotedIdent(name) => {
+                self.advance();
+                name
+            }
+            _ => {
+                self.error("expected identifier");
+                String::from("<error>")
+            }
         }
     }
 
@@ -180,6 +183,31 @@ impl Parser {
         let start = self.peek_span().start;
         self.advance(); // consume DATA_BLOCK
         let name = self.expect_ident();
+        // Skip optional metadata (TITLE, VERSION, NON_RETAIN)
+        loop {
+            match self.peek_kind() {
+                TokenKind::Title | TokenKind::Version => {
+                    self.advance();
+                    if *self.peek_kind() == TokenKind::Eq {
+                        self.advance();
+                    }
+                    // skip the value
+                    match self.peek_kind() {
+                        TokenKind::QuotedIdent(_)
+                        | TokenKind::StringLiteral(_)
+                        | TokenKind::RealLiteral(_)
+                        | TokenKind::Ident(_) => {
+                            self.advance();
+                        }
+                        _ => {}
+                    }
+                }
+                TokenKind::NonRetain => {
+                    self.advance();
+                }
+                _ => break,
+            }
+        }
         let var_sections = self.parse_var_sections();
         let end = self.peek_span().end;
         self.eat(&TokenKind::Begin);

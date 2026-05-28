@@ -27,4 +27,8 @@ impl DocumentStore {
     pub fn get(&self, uri: &Uri) -> Option<&String> {
         self.docs.get(&uri.to_string())
     }
+
+    pub fn all(&self) -> Vec<&String> {
+        self.docs.values().collect()
+    }
 }

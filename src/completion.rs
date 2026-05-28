@@ -2,7 +2,11 @@ use tower_lsp_server::lsp_types::*;
 
 use crate::lexer::{Lexer, TokenKind};
 
-pub fn get_completions(text: &str, pos: Position) -> Vec<CompletionItem> {
+pub fn get_completions(text: &str, pos: Position, all_sources: &[&str]) -> Vec<CompletionItem> {
+    let offset = position_to_offset(text, pos);
+    if is_inside_comment(text, offset) {
+        return Vec::new();
+    }
     let context = detect_context(text, pos);
     let keywords = match context {
         Context::TopLevel => &[
@@ -69,14 +73,28 @@ pub fn get_completions(text: &str, pos: Position) -> Vec<CompletionItem> {
         ][..],
     };
 
-    keywords
+    let mut items: Vec<CompletionItem> = keywords
         .iter()
         .map(|kw| CompletionItem {
             label: kw.to_string(),
             kind: Some(CompletionItemKind::KEYWORD),
             ..Default::default()
         })
-        .collect()
+        .collect();
+
+    if matches!(context, Context::Body) {
+        for src in all_sources {
+            for name in collect_declared_vars(src) {
+                items.push(CompletionItem {
+                    label: name,
+                    kind: Some(CompletionItemKind::VARIABLE),
+                    ..Default::default()
+                });
+            }
+        }
+    }
+
+    items
 }
 
 #[derive(Debug)]
@@ -88,7 +106,6 @@ enum Context {
 }
 
 fn detect_context(text: &str, pos: Position) -> Context {
-    // Get text up to cursor position
     let offset = position_to_offset(text, pos);
     let prefix = &text[..offset.min(text.len())];
     let tokens = Lexer::new(prefix).tokenize();
@@ -141,6 +158,37 @@ fn detect_context(text: &str, pos: Position) -> Context {
     } else {
         Context::TopLevel
     }
+}
+
+fn is_inside_comment(text: &str, offset: usize) -> bool {
+    let line_start = text[..offset].rfind('\n').map_or(0, |p| p + 1);
+    text[line_start..].trim_start().starts_with("//")
+}
+
+fn collect_declared_vars(source: &str) -> Vec<String> {
+    let tokens = Lexer::new(source).tokenize();
+    let mut vars = Vec::new();
+    let mut in_var = false;
+    let mut i = 0;
+    while i < tokens.len() {
+        match &tokens[i].kind {
+            TokenKind::Var | TokenKind::VarInput | TokenKind::VarOutput
+            | TokenKind::VarInOut | TokenKind::VarTemp => {
+                in_var = true;
+            }
+            TokenKind::EndVar => {
+                in_var = false;
+            }
+            TokenKind::Ident(name) if in_var => {
+                if i + 1 < tokens.len() && tokens[i + 1].kind == TokenKind::Colon {
+                    vars.push(name.clone());
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    vars
 }
 
 fn position_to_offset(text: &str, pos: Position) -> usize {
