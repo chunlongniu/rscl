@@ -193,18 +193,12 @@ impl Parser {
                     }
                     // skip the value
                     match self.peek_kind() {
-                        TokenKind::QuotedIdent(_)
-                        | TokenKind::StringLiteral(_)
-                        | TokenKind::RealLiteral(_)
-                        | TokenKind::Ident(_) => {
-                            self.advance();
-                        }
+                        TokenKind::QuotedIdent(_) | TokenKind::StringLiteral(_)
+                        | TokenKind::RealLiteral(_) | TokenKind::Ident(_) => { self.advance(); }
                         _ => {}
                     }
                 }
-                TokenKind::NonRetain => {
-                    self.advance();
-                }
+                TokenKind::NonRetain => { self.advance(); }
                 _ => break,
             }
         }

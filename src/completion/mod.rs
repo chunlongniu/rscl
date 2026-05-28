@@ -1,6 +1,9 @@
+mod helpers;
+
 use tower_lsp_server::lsp_types::*;
 
 use crate::lexer::{Lexer, TokenKind};
+use helpers::{collect_declared_vars, is_inside_comment, position_to_offset};
 
 pub fn get_completions(text: &str, pos: Position, all_sources: &[&str]) -> Vec<CompletionItem> {
     let offset = position_to_offset(text, pos);
@@ -75,10 +78,22 @@ pub fn get_completions(text: &str, pos: Position, all_sources: &[&str]) -> Vec<C
 
     let mut items: Vec<CompletionItem> = keywords
         .iter()
-        .map(|kw| CompletionItem {
-            label: kw.to_string(),
-            kind: Some(CompletionItemKind::KEYWORD),
-            ..Default::default()
+        .map(|kw| {
+            if let Some(snippet) = block_snippet(kw) {
+                CompletionItem {
+                    label: kw.to_string(),
+                    kind: Some(CompletionItemKind::SNIPPET),
+                    insert_text: Some(snippet.to_string()),
+                    insert_text_format: Some(InsertTextFormat::SNIPPET),
+                    ..Default::default()
+                }
+            } else {
+                CompletionItem {
+                    label: kw.to_string(),
+                    kind: Some(CompletionItemKind::KEYWORD),
+                    ..Default::default()
+                }
+            }
         })
         .collect();
 
@@ -160,50 +175,24 @@ fn detect_context(text: &str, pos: Position) -> Context {
     }
 }
 
-fn is_inside_comment(text: &str, offset: usize) -> bool {
-    let line_start = text[..offset].rfind('\n').map_or(0, |p| p + 1);
-    text[line_start..].trim_start().starts_with("//")
-}
-
-fn collect_declared_vars(source: &str) -> Vec<String> {
-    let tokens = Lexer::new(source).tokenize();
-    let mut vars = Vec::new();
-    let mut in_var = false;
-    let mut i = 0;
-    while i < tokens.len() {
-        match &tokens[i].kind {
-            TokenKind::Var | TokenKind::VarInput | TokenKind::VarOutput
-            | TokenKind::VarInOut | TokenKind::VarTemp => {
-                in_var = true;
-            }
-            TokenKind::EndVar => {
-                in_var = false;
-            }
-            TokenKind::Ident(name) if in_var => {
-                if i + 1 < tokens.len() && tokens[i + 1].kind == TokenKind::Colon {
-                    vars.push(name.clone());
-                }
-            }
-            _ => {}
-        }
-        i += 1;
+fn block_snippet(keyword: &str) -> Option<&'static str> {
+    match keyword {
+        "FUNCTION_BLOCK" => Some("FUNCTION_BLOCK $1\n$0\nEND_FUNCTION_BLOCK"),
+        "FUNCTION" => Some("FUNCTION $1\n$0\nEND_FUNCTION"),
+        "DATA_BLOCK" => Some("DATA_BLOCK $1\n$0\nEND_DATA_BLOCK"),
+        "ORGANIZATION_BLOCK" => Some("ORGANIZATION_BLOCK $1\n$0\nEND_ORGANIZATION_BLOCK"),
+        "VAR" => Some("VAR\n\t$0\nEND_VAR"),
+        "VAR_INPUT" => Some("VAR_INPUT\n\t$0\nEND_VAR"),
+        "VAR_OUTPUT" => Some("VAR_OUTPUT\n\t$0\nEND_VAR"),
+        "VAR_IN_OUT" => Some("VAR_IN_OUT\n\t$0\nEND_VAR"),
+        "VAR_TEMP" => Some("VAR_TEMP\n\t$0\nEND_VAR"),
+        "CONST" => Some("CONST\n\t$0\nEND_CONST"),
+        "IF" => Some("IF $1 THEN\n\t$0\nEND_IF"),
+        "FOR" => Some("FOR $1 TO $2 DO\n\t$0\nEND_FOR"),
+        "WHILE" => Some("WHILE $1 DO\n\t$0\nEND_WHILE"),
+        "REPEAT" => Some("REPEAT\n\t$0\nUNTIL $1\nEND_REPEAT"),
+        "STRUCT" => Some("STRUCT\n\t$0\nEND_STRUCT"),
+        "CASE" => Some("CASE $1 OF\n\t$0\nEND_CASE"),
+        _ => None,
     }
-    vars
-}
-
-fn position_to_offset(text: &str, pos: Position) -> usize {
-    let mut line = 0u32;
-    let mut col = 0u32;
-    for (i, ch) in text.char_indices() {
-        if line == pos.line && col == pos.character {
-            return i;
-        }
-        if ch == '\n' {
-            line += 1;
-            col = 0;
-        } else {
-            col += 1;
-        }
-    }
-    text.len()
 }
