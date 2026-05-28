@@ -37,10 +37,9 @@ pub fn collect_declared_vars(source: &str) -> Vec<String> {
             TokenKind::EndVar => {
                 in_var = false;
             }
-            TokenKind::Ident(name) if in_var => {
-                if i + 1 < tokens.len() && tokens[i + 1].kind == TokenKind::Colon {
+            TokenKind::Ident(name) if in_var
+                && i + 1 < tokens.len() && tokens[i + 1].kind == TokenKind::Colon => {
                     vars.push(name.clone());
-                }
             }
             _ => {}
         }

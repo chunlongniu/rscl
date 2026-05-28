@@ -188,13 +188,14 @@ impl Parser {
             match self.peek_kind() {
                 TokenKind::Title | TokenKind::Version => {
                     self.advance();
-                    if *self.peek_kind() == TokenKind::Eq {
+                    if *self.peek_kind() == TokenKind::Eq || *self.peek_kind() == TokenKind::Colon {
                         self.advance();
                     }
                     // skip the value
                     match self.peek_kind() {
                         TokenKind::QuotedIdent(_) | TokenKind::StringLiteral(_)
-                        | TokenKind::RealLiteral(_) | TokenKind::Ident(_) => { self.advance(); }
+                        | TokenKind::RealLiteral(_) | TokenKind::IntLiteral(_)
+                        | TokenKind::Ident(_) => { self.advance(); }
                         _ => {}
                     }
                 }
@@ -245,6 +246,35 @@ impl Parser {
                 TokenKind::VarInOut => VarSectionKind::VarInOut,
                 TokenKind::VarTemp => VarSectionKind::VarTemp,
                 TokenKind::Const => VarSectionKind::Const,
+                TokenKind::Struct => {
+                    // DATA_BLOCK top-level STRUCT ... END_STRUCT
+                    let start = self.peek_span().start;
+                    self.advance();
+                    let mut decls = Vec::new();
+                    while !matches!(
+                        self.peek_kind(),
+                        TokenKind::EndStruct | TokenKind::Eof
+                    ) {
+                        if let Some(d) = self.parse_var_decl() {
+                            decls.push(d);
+                        } else {
+                            self.skip_until(&[
+                                TokenKind::Semicolon,
+                                TokenKind::EndStruct,
+                            ]);
+                            self.eat(&TokenKind::Semicolon);
+                        }
+                    }
+                    let end = self.peek_span().end;
+                    self.eat(&TokenKind::EndStruct);
+                    self.eat(&TokenKind::Semicolon);
+                    sections.push(VarSection {
+                        kind: VarSectionKind::Var,
+                        decls,
+                        span: Span { start, end },
+                    });
+                    continue;
+                }
                 _ => break,
             };
             let start = self.peek_span().start;

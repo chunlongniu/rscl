@@ -7,6 +7,7 @@ use tower_lsp_server::{Client, LanguageServer};
 use crate::completion::get_completions;
 use crate::diagnostics::publish_diagnostics;
 use crate::document::DocumentStore;
+use crate::hover::get_hover;
 
 pub struct Backend {
     client: Client,
@@ -33,6 +34,7 @@ impl LanguageServer for Backend {
                     trigger_characters: Some(vec![".".into(), ":".into()]),
                     ..Default::default()
                 }),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 ..Default::default()
             },
             ..Default::default()
@@ -89,5 +91,17 @@ impl LanguageServer for Backend {
         let items = get_completions(&text, pos, &all_sources);
         drop(docs);
         Ok(Some(CompletionResponse::Array(items)))
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let uri = &params.text_document_position_params.text_document.uri;
+        let pos = params.text_document_position_params.position;
+        let docs = self.documents.lock().unwrap();
+        let text = match docs.get(uri) {
+            Some(t) => t.clone(),
+            None => return Ok(None),
+        };
+        drop(docs);
+        Ok(get_hover(&text, pos))
     }
 }

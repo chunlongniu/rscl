@@ -1,4 +1,4 @@
-mod helpers;
+pub mod helpers;
 
 use tower_lsp_server::lsp_types::*;
 
@@ -25,6 +25,7 @@ pub fn get_completions(text: &str, pos: Position, all_sources: &[&str]) -> Vec<C
             "VAR_IN_OUT",
             "VAR_TEMP",
             "CONST",
+            "STRUCT",
             "BEGIN",
         ][..],
         Context::VarSection => &[
@@ -44,6 +45,8 @@ pub fn get_completions(text: &str, pos: Position, all_sources: &[&str]) -> Vec<C
             "S5TIME",
             "ARRAY",
             "STRUCT",
+            "END_STRUCT",
+            "END_VAR",
         ][..],
         Context::Body => &[
             "IF",
@@ -156,6 +159,13 @@ fn detect_context(text: &str, pos: Position) -> Context {
             TokenKind::EndVar | TokenKind::EndConst => {
                 in_var = false;
             }
+            TokenKind::Struct => {
+                in_var = true;
+                in_body = false;
+            }
+            TokenKind::EndStruct => {
+                in_var = false;
+            }
             TokenKind::Begin => {
                 in_var = false;
                 in_body = true;
@@ -191,8 +201,8 @@ fn block_snippet(keyword: &str) -> Option<&'static str> {
         "FOR" => Some("FOR $1 TO $2 DO\n\t$0\nEND_FOR"),
         "WHILE" => Some("WHILE $1 DO\n\t$0\nEND_WHILE"),
         "REPEAT" => Some("REPEAT\n\t$0\nUNTIL $1\nEND_REPEAT"),
-        "STRUCT" => Some("STRUCT\n\t$0\nEND_STRUCT"),
         "CASE" => Some("CASE $1 OF\n\t$0\nEND_CASE"),
+        "STRUCT" => Some("STRUCT\n\t$0\nEND_STRUCT"),
         _ => None,
     }
 }

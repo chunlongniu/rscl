@@ -2,6 +2,7 @@ mod ast;
 mod completion;
 mod diagnostics;
 mod document;
+mod hover;
 mod lexer;
 mod parser;
 mod server;
