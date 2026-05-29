@@ -1,7 +1,8 @@
 use tower_lsp_server::lsp_types::*;
 
-use crate::completion::helpers::position_to_offset;
-use crate::lexer::{Lexer, TokenKind};
+use crate::helper::position_to_offset;
+use crate::lexer::Lexer;
+use crate::types::TokenKind;
 
 pub fn get_hover(text: &str, pos: Position) -> Option<Hover> {
     let offset = position_to_offset(text, pos);

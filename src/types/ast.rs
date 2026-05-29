@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::lexer::Span;
+use super::token::Span;
 
 #[derive(Debug, Clone)]
 pub struct SourceFile {

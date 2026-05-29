@@ -1,13 +1,11 @@
-mod ast;
 mod completion;
-mod diagnostics;
-mod document;
-mod hover;
+mod core;
+mod helper;
 mod lexer;
 mod parser;
-mod server;
+mod types;
 
-use server::Backend;
+use core::server::Backend;
 use tower_lsp_server::{LspService, Server};
 
 #[tokio::main]

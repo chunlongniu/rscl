@@ -5,9 +5,9 @@ use tower_lsp_server::lsp_types::*;
 use tower_lsp_server::{Client, LanguageServer};
 
 use crate::completion::get_completions;
-use crate::diagnostics::publish_diagnostics;
-use crate::document::DocumentStore;
-use crate::hover::get_hover;
+use crate::core::diagnostics::publish_diagnostics;
+use crate::core::document::DocumentStore;
+use crate::core::hover::get_hover;
 
 pub struct Backend {
     client: Client,

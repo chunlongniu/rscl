@@ -1,9 +1,8 @@
-pub mod helpers;
-
 use tower_lsp_server::lsp_types::*;
 
-use crate::lexer::{Lexer, TokenKind};
-use helpers::{collect_declared_vars, is_inside_comment, position_to_offset};
+use crate::lexer::Lexer;
+use crate::helper::{collect_declared_vars, is_inside_comment, position_to_offset};
+use crate::types::TokenKind;
 
 pub fn get_completions(text: &str, pos: Position, all_sources: &[&str]) -> Vec<CompletionItem> {
     let offset = position_to_offset(text, pos);

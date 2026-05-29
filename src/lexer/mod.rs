@@ -1,124 +1,4 @@
-#[derive(Debug, Clone, PartialEq)]
-pub struct Span {
-    pub start: usize,
-    pub end: usize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Token {
-    pub kind: TokenKind,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum TokenKind {
-    // Keywords - Blocks
-    Function,
-    FunctionBlock,
-    DataBlock,
-    OrganizationBlock,
-    EndFunction,
-    EndFunctionBlock,
-    EndDataBlock,
-    // Keywords - Var sections
-    Var,
-    VarInput,
-    VarOutput,
-    VarInOut,
-    VarTemp,
-    Const,
-    EndVar,
-    EndConst,
-    // Keywords - Control flow
-    If,
-    Then,
-    Elsif,
-    Else,
-    EndIf,
-    For,
-    To,
-    By,
-    Do,
-    EndFor,
-    While,
-    EndWhile,
-    Repeat,
-    Until,
-    EndRepeat,
-    Case,
-    Of,
-    EndCase,
-    Return,
-    Begin,
-    // Keywords - Types
-    Bool,
-    Byte,
-    Word,
-    DWord,
-    Int,
-    DInt,
-    Real,
-    Char,
-    StringKw,
-    Time,
-    Date,
-    Tod,
-    DateAndTime,
-    S5Time,
-    Array,
-    Struct,
-    EndStruct,
-    EndType,
-    Type,
-    // Keywords - Operators
-    And,
-    Or,
-    Xor,
-    Not,
-    Mod,
-    Div,
-    // Literals
-    True,
-    False,
-    // Keywords - Metadata
-    Title,
-    Version,
-    NonRetain,
-    // Identifiers and literals
-    Ident(String),
-    QuotedIdent(String),
-    IntLiteral(i64),
-    RealLiteral(f64),
-    StringLiteral(String),
-    // PLC address (e.g. IW0, MW10, Q0.1, DB1.DBW0)
-    PlcAddress(String),
-    // Operators and punctuation
-    Assign,    // :=
-    Colon,     // :
-    Semicolon, // ;
-    Comma,     // ,
-    Dot,       // .
-    DotDot,    // ..
-    LParen,    // (
-    RParen,    // )
-    LBracket,  // [
-    RBracket,  // ]
-    Plus,      // +
-    Minus,     // -
-    Star,      // *
-    Slash,     // /
-    Power,     // **
-    Eq,        // =
-    Neq,       // <>
-    Lt,        // <
-    Gt,        // >
-    Le,        // <=
-    Ge,        // >=
-    Hash,      // #
-    // Special
-    Error(char),
-    Eof,
-}
+use crate::types::{Span, Token, TokenKind};
 
 pub struct Lexer<'a> {
     input: &'a [u8],
@@ -198,10 +78,7 @@ impl<'a> Lexer<'a> {
                     TokenKind::Dot
                 }
             }
-            '(' => {
-                // Check for (* comment - should have been handled but just in case
-                TokenKind::LParen
-            }
+            '(' => TokenKind::LParen,
             ')' => TokenKind::RParen,
             '[' => TokenKind::LBracket,
             ']' => TokenKind::RBracket,
@@ -433,7 +310,7 @@ impl<'a> Lexer<'a> {
 
         // Check for PLC address pattern: memory prefix + optional size + digits
         if !has_hash {
-            if let Some(kind) = try_plc_address(&upper, self.input, &mut self.pos, start) {
+            if let Some(kind) = try_plc_address(&upper, self.input, &mut self.pos) {
                 return Token {
                     kind,
                     span: Span {
@@ -523,7 +400,7 @@ impl<'a> Lexer<'a> {
 }
 
 /// Try to parse a PLC memory address like IW0, MW10, Q0.1, DB1.DBW0
-fn try_plc_address(upper: &str, input: &[u8], pos: &mut usize, _start: usize) -> Option<TokenKind> {
+fn try_plc_address(upper: &str, input: &[u8], pos: &mut usize) -> Option<TokenKind> {
     let prefixes = [
         "PIW", "PQW", "PID", "PQD", "IB", "IW", "ID", "QB", "QW", "QD", "MB", "MW", "MD",
     ];

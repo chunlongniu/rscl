@@ -3,20 +3,21 @@ use tower_lsp_server::Client;
 
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::types::{ParseError, TokenKind};
 
 pub async fn publish_diagnostics(client: &Client, uri: &Uri, text: &str) {
     let tokens = Lexer::new(text).tokenize();
     // Collect lexer errors
     let lex_errors: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t.kind, crate::lexer::TokenKind::Error(_)))
+        .filter(|t| matches!(t.kind, TokenKind::Error(_)))
         .map(|t| {
-            let ch = if let crate::lexer::TokenKind::Error(c) = t.kind {
+            let ch = if let TokenKind::Error(c) = t.kind {
                 c
             } else {
                 '?'
             };
-            crate::parser::ParseError {
+            ParseError {
                 message: format!("unexpected character '{}'", ch),
                 span: t.span.clone(),
             }
