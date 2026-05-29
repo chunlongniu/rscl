@@ -552,3 +552,4 @@ mod tests {
         assert_eq!(tokens[1].kind, TokenKind::If);
     }
 }
+

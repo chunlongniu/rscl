@@ -184,4 +184,14 @@ mod tests {
         assert!(!errors.is_empty());
         assert_eq!(sf.blocks.len(), 1);
     }
+
+    #[test]
+    fn test_metadata_with_semicolons() {
+        let (sf, errors) = parse(
+            "FUNCTION_BLOCK \"FB\"\n  TITLE = 'test';\n  VERSION : '1.0';\n  VAR_INPUT\n    x : BOOL := FALSE;\n  END_VAR\nBEGIN\n  x := TRUE;\nEND_FUNCTION_BLOCK",
+        );
+        assert!(errors.is_empty(), "errors: {:?}", errors);
+        assert_eq!(sf.blocks.len(), 1);
+    }
 }
+

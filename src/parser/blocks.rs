@@ -102,6 +102,7 @@ impl Parser {
                         }
                         _ => {}
                     }
+                    self.eat(&TokenKind::Semicolon);
                 }
                 TokenKind::NonRetain => {
                     self.advance();
